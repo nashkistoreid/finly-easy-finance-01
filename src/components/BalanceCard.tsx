@@ -19,7 +19,7 @@ export const BalanceCard = ({ balance, totalIncome, totalExpense }: BalanceCardP
             <span className="text-base sm:text-sm font-medium opacity-90">Saldo Cash Saat Ini</span>
           </div>
           <div className="text-4xl sm:text-3xl font-bold mb-2">
-            {formatCurrency(balance)}
+            {formatCurrency(balance, true)}
           </div>
           <p className="text-base sm:text-sm opacity-80">
             Total dari semua transaksi
@@ -37,7 +37,7 @@ export const BalanceCard = ({ balance, totalIncome, totalExpense }: BalanceCardP
             <div>
               <p className="text-sm sm:text-xs font-medium text-muted-foreground">Pemasukan</p>
               <p className="font-bold text-income text-base sm:text-sm">
-                {formatCurrency(totalIncome)}
+                {formatCurrency(totalIncome, true)}
               </p>
             </div>
           </div>
@@ -51,7 +51,7 @@ export const BalanceCard = ({ balance, totalIncome, totalExpense }: BalanceCardP
             <div>
               <p className="text-sm sm:text-xs font-medium text-muted-foreground">Pengeluaran</p>
               <p className="font-bold text-expense text-base sm:text-sm">
-                {formatCurrency(totalExpense)}
+                {formatCurrency(totalExpense, true)}
               </p>
             </div>
           </div>

@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { saveTransaction, getActiveCategories } from '@/lib/storage';
+import { saveTransaction, getActiveCategories, formatInputCurrency, parseCurrencyInput } from '@/lib/storage';
 import { useToast } from '@/hooks/use-toast';
 
 export default function AddTransaction() {
@@ -51,8 +51,8 @@ export default function AddTransaction() {
       return;
     }
 
-    const amount = parseFloat(formData.amount);
-    if (isNaN(amount) || amount <= 0) {
+    const amount = parseCurrencyInput(formData.amount);
+    if (amount <= 0) {
       toast({
         title: "Error",
         description: "Mohon masukkan nominal yang valid",
@@ -183,12 +183,13 @@ export default function AddTransaction() {
               </span>
               <Input
                 id="amount"
-                type="number"
+                type="text"
                 placeholder="0"
-                min="0"
-                step="1000"
                 value={formData.amount}
-                onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
+                onChange={(e) => {
+                  const formatted = formatInputCurrency(e.target.value);
+                  setFormData(prev => ({ ...prev, amount: formatted }));
+                }}
                 className="pl-10"
                 required
               />

@@ -406,10 +406,35 @@ export const getTotalSavingsAmount = (): number => {
   }, 0);
 };
 
-export const formatCurrency = (amount: number): string => {
+export const formatCurrency = (amount: number, abbreviated: boolean = false): string => {
+  // Check if we should abbreviate (for mobile)
+  if (abbreviated && window.innerWidth < 640) {
+    if (amount >= 1000000000) {
+      return `Rp ${(amount / 1000000000).toFixed(1).replace(/\.0$/, '')}M`;
+    } else if (amount >= 1000000) {
+      return `Rp ${(amount / 1000000).toFixed(1).replace(/\.0$/, '')}JT`;
+    }
+  }
+  
   return new Intl.NumberFormat('id-ID', {
     style: 'currency',
     currency: 'IDR',
     minimumFractionDigits: 0,
   }).format(amount);
+};
+
+// Format input value with thousand separators
+export const formatInputCurrency = (value: string): string => {
+  // Remove all non-digit characters
+  const numericValue = value.replace(/\D/g, '');
+  
+  // Add thousand separators
+  return numericValue.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+};
+
+// Parse formatted input back to number
+export const parseCurrencyInput = (value: string): number => {
+  // Remove all non-digit characters
+  const numericValue = value.replace(/\D/g, '');
+  return parseInt(numericValue, 10) || 0;
 };
