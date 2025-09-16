@@ -6,9 +6,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { getSavingsGoals, saveSavingsGoal, updateSavingsGoal, deactivateSavingsGoal, getSavingsGoalProgress, createDepositTransaction, createWithdrawalTransaction, formatCurrency, type SavingsGoal } from '@/lib/storage';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { getSavingsGoals, saveSavingsGoal, updateSavingsGoal, deactivateSavingsGoal, getSavingsGoalProgress, createDepositTransaction, createWithdrawalTransaction, formatCurrency, formatInputCurrency, parseCurrencyInput, type SavingsGoal } from '@/lib/storage';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { banks, getBankById } from '@/lib/banks';
 
 export default function SavingsGoals() {
   const [goals, setGoals] = useState<SavingsGoal[]>([]);
@@ -20,6 +22,7 @@ export default function SavingsGoals() {
   const [formData, setFormData] = useState({
     name: '',
     target_amount: '',
+    bank_id: '',
     deposit_amount: '',
     withdrawal_amount: '',
     notes: '',
@@ -46,7 +49,7 @@ export default function SavingsGoals() {
   }, []);
 
   const resetForm = () => {
-    setFormData({ name: '', target_amount: '', deposit_amount: '', withdrawal_amount: '', notes: '' });
+    setFormData({ name: '', target_amount: '', bank_id: '', deposit_amount: '', withdrawal_amount: '', notes: '' });
     setEditingGoal(null);
     setSelectedGoalId(null);
   };
@@ -63,7 +66,7 @@ export default function SavingsGoals() {
       return;
     }
 
-    const target_amount = parseFloat(formData.target_amount);
+    const target_amount = parseCurrencyInput(formData.target_amount);
 
     if (target_amount <= 0) {
       toast({
@@ -79,6 +82,7 @@ export default function SavingsGoals() {
         updateSavingsGoal(editingGoal.id, {
           name: formData.name.trim(),
           target_amount,
+          bank_id: formData.bank_id || undefined,
         });
         toast({
           title: "Berhasil",
@@ -88,6 +92,7 @@ export default function SavingsGoals() {
         saveSavingsGoal({
           name: formData.name.trim(),
           target_amount,
+          bank_id: formData.bank_id || undefined,
           is_active: true,
           created_at: new Date().toISOString(),
         });
@@ -120,7 +125,7 @@ export default function SavingsGoals() {
       return;
     }
 
-    const amount = parseFloat(formData.deposit_amount);
+    const amount = parseCurrencyInput(formData.deposit_amount);
     if (amount <= 0) {
       toast({
         title: "Error",
@@ -159,7 +164,7 @@ export default function SavingsGoals() {
       return;
     }
 
-    const amount = parseFloat(formData.withdrawal_amount);
+    const amount = parseCurrencyInput(formData.withdrawal_amount);
     if (amount <= 0) {
       toast({
         title: "Error",
@@ -191,6 +196,7 @@ export default function SavingsGoals() {
     setFormData({
       name: goal.name,
       target_amount: goal.target_amount.toString(),
+      bank_id: goal.bank_id || '',
       deposit_amount: '',
       withdrawal_amount: '',
       notes: '',
@@ -263,14 +269,45 @@ export default function SavingsGoals() {
               
               <div className="space-y-2">
                 <Label htmlFor="target_amount">Nominal Target</Label>
-                <Input
-                  id="target_amount"
-                  type="number"
-                  placeholder="25000000"
-                  value={formData.target_amount}
-                  onChange={(e) => setFormData({ ...formData, target_amount: e.target.value })}
-                  required
-                />
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
+                    Rp
+                  </span>
+                  <Input
+                    id="target_amount"
+                    type="text"
+                    placeholder="0"
+                    value={formData.target_amount}
+                    onChange={(e) => {
+                      const formatted = formatInputCurrency(e.target.value);
+                      setFormData({ ...formData, target_amount: formatted });
+                    }}
+                    className="pl-10"
+                    required
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="bank">Bank/E-Wallet</Label>
+                <Select
+                  value={formData.bank_id}
+                  onValueChange={(value) => setFormData({ ...formData, bank_id: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih bank atau e-wallet" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {banks.map((bank) => (
+                      <SelectItem key={bank.id} value={bank.id}>
+                        <div className="flex items-center">
+                          <span className="mr-2">{bank.icon}</span>
+                          {bank.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               
               <div className="flex space-x-2 pt-4">
@@ -320,9 +357,19 @@ export default function SavingsGoals() {
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1">
                     <h3 className="font-semibold text-lg">{goal.name}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Target: {formatCurrency(goal.target_amount)}
-                    </p>
+                    <div className="flex items-center gap-4">
+                      <p className="text-sm text-muted-foreground">
+                        Target: {formatCurrency(goal.target_amount)}
+                      </p>
+                      {goal.bank_id && getBankById(goal.bank_id) && (
+                        <div className="flex items-center gap-1 text-sm">
+                          <span className={`${getBankById(goal.bank_id)!.bgColor} ${getBankById(goal.bank_id)!.textColor} px-2 py-0.5 rounded-md text-xs font-medium flex items-center gap-1`}>
+                            {getBankById(goal.bank_id)!.icon}
+                            {getBankById(goal.bank_id)!.shortName}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <div className="flex space-x-1">
                     <Button
@@ -416,15 +463,24 @@ export default function SavingsGoals() {
           
           <form onSubmit={handleDeposit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="deposit_amount">Nominal Setoran</Label>
-              <Input
-                id="deposit_amount"
-                type="number"
-                placeholder="500000"
-                value={formData.deposit_amount}
-                onChange={(e) => setFormData({ ...formData, deposit_amount: e.target.value })}
-                required
-              />
+                <Label htmlFor="deposit_amount">Nominal Setoran</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
+                    Rp
+                  </span>
+                  <Input
+                    id="deposit_amount"
+                    type="text"
+                    placeholder="0"
+                    value={formData.deposit_amount}
+                    onChange={(e) => {
+                      const formatted = formatInputCurrency(e.target.value);
+                      setFormData({ ...formData, deposit_amount: formatted });
+                    }}
+                    className="pl-10"
+                    required
+                  />
+                </div>
             </div>
             
             <div className="space-y-2">
@@ -469,15 +525,24 @@ export default function SavingsGoals() {
           
           <form onSubmit={handleWithdrawal} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="withdrawal_amount">Nominal Penarikan</Label>
-              <Input
-                id="withdrawal_amount"
-                type="number"
-                placeholder="200000"
-                value={formData.withdrawal_amount}
-                onChange={(e) => setFormData({ ...formData, withdrawal_amount: e.target.value })}
-                required
-              />
+                <Label htmlFor="withdrawal_amount">Nominal Penarikan</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground">
+                    Rp
+                  </span>
+                  <Input
+                    id="withdrawal_amount"
+                    type="text"
+                    placeholder="0"
+                    value={formData.withdrawal_amount}
+                    onChange={(e) => {
+                      const formatted = formatInputCurrency(e.target.value);
+                      setFormData({ ...formData, withdrawal_amount: formatted });
+                    }}
+                    className="pl-10"
+                    required
+                  />
+                </div>
             </div>
             
             <div className="space-y-2">

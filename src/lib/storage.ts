@@ -127,6 +127,7 @@ export interface SavingsGoal {
   target_amount: number;
   is_active: boolean;
   created_at: string;
+  bank_id?: string;
 }
 
 // Legacy interface for backward compatibility
