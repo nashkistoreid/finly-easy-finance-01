@@ -94,21 +94,21 @@ export default function Dashboard() {
             <h3 className="font-semibold text-lg sm:text-base">Ringkasan</h3>
           </div>
           
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => navigateMonth('prev')}
-              className="h-8 w-8"
+              className="h-7 w-7 sm:h-8 sm:w-8"
             >
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft className="h-3 w-3 sm:h-4 sm:w-4" />
             </Button>
             
             <Select 
               value={selectedDate.toISOString()} 
               onValueChange={(value) => setSelectedDate(new Date(value))}
             >
-              <SelectTrigger className="w-[160px] h-8">
+              <SelectTrigger className="w-[110px] sm:w-[140px] h-7 sm:h-8 text-xs sm:text-sm">
                 <SelectValue>{currentMonth}</SelectValue>
               </SelectTrigger>
               <SelectContent>
@@ -124,10 +124,10 @@ export default function Dashboard() {
               variant="ghost"
               size="icon"
               onClick={() => navigateMonth('next')}
-              className="h-8 w-8"
+              className="h-7 w-7 sm:h-8 sm:w-8"
               disabled={selectedDate.getMonth() === new Date().getMonth() && selectedDate.getFullYear() === new Date().getFullYear()}
             >
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className="h-3 w-3 sm:h-4 sm:w-4" />
             </Button>
           </div>
         </div>
