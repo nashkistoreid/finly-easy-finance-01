@@ -16,7 +16,7 @@ export const BalanceCard = ({ balance, totalIncome, totalExpense }: BalanceCardP
         <div className="text-center">
           <div className="flex items-center justify-center mb-3">
             <DollarSign className="h-7 w-7 sm:h-6 sm:w-6 mr-2" />
-            <span className="text-base sm:text-sm font-medium opacity-90">Saldo Saat Ini</span>
+            <span className="text-base sm:text-sm font-medium opacity-90">Saldo Cash Saat Ini</span>
           </div>
           <div className="text-4xl sm:text-3xl font-bold mb-2">
             {formatCurrency(balance)}

@@ -246,7 +246,7 @@ const createSavingsCategory = (goal: SavingsGoal): void => {
   const categories = getCategories();
   const newCategory: Category = {
     id: `savings_${goal.id}`,
-    name: `Tabungan: ${goal.name}`,
+    name: `Impian: ${goal.name}`,
     type: 'expense',
     is_savings: true,
     savings_goal_id: goal.id,
@@ -261,7 +261,7 @@ const updateSavingsCategoryName = (goalId: string, newGoalName: string): void =>
   const categories = getCategories();
   const categoryIndex = categories.findIndex(c => c.savings_goal_id === goalId && c.is_savings);
   if (categoryIndex !== -1) {
-    categories[categoryIndex].name = `Tabungan: ${newGoalName}`;
+    categories[categoryIndex].name = `Impian: ${newGoalName}`;
     localStorage.setItem(CATEGORIES_KEY, JSON.stringify(categories));
   }
 };
@@ -291,7 +291,7 @@ export const getSavingsGoalProgress = (goalId: string): { collected_amount: numb
     .reduce((sum, t) => sum + t.amount, 0);
   
   // Calculate withdrawals (income from withdrawal category)
-  const withdrawalCategoryName = `Penarikan Tabungan: ${savingsCategory.name.replace('Tabungan: ', '')}`;
+  const withdrawalCategoryName = `Penarikan Impian: ${savingsCategory.name.replace('Impian: ', '')}`;
   const withdrawals = transactions
     .filter(t => t.type === 'income' && t.category === withdrawalCategoryName)
     .reduce((sum, t) => sum + t.amount, 0);
@@ -316,7 +316,7 @@ export const createDepositTransaction = (goalId: string, amount: number, notes?:
   const categories = getCategories();
   const savingsCategory = categories.find(c => c.savings_goal_id === goalId && c.is_savings);
   if (!savingsCategory) {
-    throw new Error('Kategori tabungan tidak ditemukan');
+    throw new Error('Kategori impian tidak ditemukan');
   }
   
   const transaction = saveTransaction({
@@ -340,7 +340,7 @@ export const createWithdrawalTransaction = (goalId: string, amount: number, note
   }
   
   const categories = getCategories();
-  const withdrawalCategoryName = `Penarikan Tabungan: ${goal.name}`;
+  const withdrawalCategoryName = `Penarikan Impian: ${goal.name}`;
   
   // Create withdrawal category if it doesn't exist
   let withdrawalCategory = categories.find(c => c.name === withdrawalCategoryName);

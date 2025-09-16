@@ -30,7 +30,7 @@ export default function SavingsDetail() {
           c.is_savings && c.savings_goal_id === goalId
         );
         const withdrawalCategory = categories.find(c => 
-          c.name === `Penarikan Tabungan: ${foundGoal.name}`
+          c.name === `Penarikan Impian: ${foundGoal.name}`
         );
 
         // Filter transactions related to this savings goal
@@ -61,9 +61,9 @@ export default function SavingsDetail() {
     return (
       <div className="pb-24 px-3 sm:px-4 pt-6 w-full max-w-sm sm:max-w-md mx-auto">
         <div className="text-center py-8">
-          <h2 className="text-lg font-medium">Target tabungan tidak ditemukan</h2>
+          <h2 className="text-lg font-medium">Target impian tidak ditemukan</h2>
           <Button onClick={() => navigate('/savings')} className="mt-4">
-            Kembali ke Tabungan
+            Kembali ke Impian
           </Button>
         </div>
       </div>
@@ -86,7 +86,7 @@ export default function SavingsDetail() {
         </Button>
         <div>
           <h1 className="text-xl font-bold">{goal.name}</h1>
-          <p className="text-sm text-muted-foreground">Detail Riwayat Tabungan</p>
+          <p className="text-sm text-muted-foreground">Detail Riwayat Impian</p>
         </div>
       </div>
 
@@ -126,7 +126,7 @@ export default function SavingsDetail() {
           onClick={() => navigate('/add', { 
             state: { 
               defaultType: 'expense',
-              defaultCategory: `Tabungan: ${goal.name}`
+              defaultCategory: `Impian: ${goal.name}`
             }
           })}
           className="flex-1"
@@ -140,7 +140,7 @@ export default function SavingsDetail() {
           onClick={() => navigate('/add', { 
             state: { 
               defaultType: 'income',
-              defaultCategory: `Penarikan Tabungan: ${goal.name}`
+              defaultCategory: `Penarikan Impian: ${goal.name}`
             }
           })}
           className="flex-1"
@@ -166,7 +166,7 @@ export default function SavingsDetail() {
               onClick={() => navigate('/add', { 
                 state: { 
                   defaultType: 'expense',
-                  defaultCategory: `Tabungan: ${goal.name}`
+                  defaultCategory: `Impian: ${goal.name}`
                 }
               })}
             >

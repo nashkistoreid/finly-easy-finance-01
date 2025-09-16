@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { PiggyBank, Target } from 'lucide-react';
+import { Sparkles, Target } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
@@ -32,11 +32,15 @@ export const SavingsProgress = () => {
   }, []);
 
   return (
-    <Card className="p-4">
+    <Card className="p-5 bg-gradient-to-br from-accent/10 via-primary/10 to-accent/10 border-primary/20 shadow-lg">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-2">
-          <PiggyBank className="h-4 w-4 text-primary" />
-          <h3 className="font-semibold">Progress Nabung</h3>
+          <div className="p-2 bg-primary/20 rounded-full">
+            <Sparkles className="h-5 w-5 text-primary" />
+          </div>
+          <h3 className="font-bold text-lg bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+            Progress Impian
+          </h3>
         </div>
         <Button
           variant="ghost"
@@ -49,29 +53,35 @@ export const SavingsProgress = () => {
       </div>
 
       {totalSavingsAmount > 0 && (
-        <div className="mb-4 p-3 bg-primary/5 rounded-lg">
-          <p className="text-xs text-muted-foreground mb-1">Total Tabungan</p>
-          <p className="font-semibold text-primary">
+        <div className="mb-4 p-4 bg-gradient-to-r from-primary/15 to-accent/15 rounded-lg border border-primary/20">
+          <p className="text-xs text-muted-foreground mb-1 font-medium">Total Dana Impian</p>
+          <p className="font-bold text-2xl bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
             {formatCurrency(totalSavingsAmount)}
           </p>
-          <p className="text-xs text-muted-foreground mt-1">
-            *Uang yang dialokasikan untuk tujuan tertentu
+          <p className="text-xs text-muted-foreground mt-2">
+            💰 Dana terkumpul untuk mewujudkan impian Anda
           </p>
         </div>
       )}
 
       {goals.length === 0 ? (
-        <div className="text-center py-6">
-          <Target className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-          <p className="text-sm text-muted-foreground mb-3">
-            Belum ada target tabungan
+        <div className="text-center py-8">
+          <div className="p-3 bg-accent/10 rounded-full w-fit mx-auto mb-3">
+            <Target className="h-10 w-10 text-accent" />
+          </div>
+          <p className="text-sm font-medium text-foreground mb-2">
+            Belum ada impian yang ditargetkan
+          </p>
+          <p className="text-xs text-muted-foreground mb-4">
+            Mulai wujudkan impian Anda dengan membuat target
           </p>
           <Button
-            variant="outline"
+            variant="default"
             size="sm"
             onClick={() => navigate('/savings')}
+            className="bg-gradient-to-r from-primary to-accent hover:opacity-90"
           >
-            Buat Target Pertama
+            Buat Impian Pertama ✨
           </Button>
         </div>
       ) : (
@@ -105,9 +115,9 @@ export const SavingsProgress = () => {
               variant="ghost"
               size="sm"
               onClick={() => navigate('/savings')}
-              className="w-full text-xs"
+              className="w-full text-xs hover:bg-primary/10"
             >
-              Lihat {goals.length - 3} target lainnya
+              Lihat {goals.length - 3} impian lainnya ✨
             </Button>
           )}
         </div>

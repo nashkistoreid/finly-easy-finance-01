@@ -7,7 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 const navItems = [
   { icon: Home, label: 'Dashboard', path: '/dashboard' },
   { icon: Plus, label: 'Tambah', path: '/add' },
-  { icon: PiggyBank, label: 'Tabungan', path: '/savings' },
+  { icon: PiggyBank, label: 'Impian', path: '/savings' },
   { icon: History, label: 'Riwayat', path: '/history' },
 ];
 

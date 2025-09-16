@@ -82,7 +82,7 @@ export default function SavingsGoals() {
         });
         toast({
           title: "Berhasil",
-          description: "Target tabungan berhasil diperbarui",
+          description: "Target impian berhasil diperbarui",
         });
       } else {
         saveSavingsGoal({
@@ -93,7 +93,7 @@ export default function SavingsGoals() {
         });
         toast({
           title: "Berhasil",
-          description: "Target tabungan berhasil ditambahkan",
+          description: "Target impian berhasil ditambahkan",
         });
       }
 
@@ -202,7 +202,7 @@ export default function SavingsGoals() {
     deactivateSavingsGoal(id);
     toast({
       title: "Berhasil",
-      description: "Target tabungan berhasil dinonaktifkan",
+      description: "Target impian berhasil dinonaktifkan",
     });
   };
 
@@ -223,8 +223,8 @@ export default function SavingsGoals() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl sm:text-2xl font-bold mb-1">Target Tabungan</h1>
-          <p className="text-muted-foreground text-base sm:text-sm">Kelola target tabungan terintegrasi</p>
+          <h1 className="text-3xl sm:text-2xl font-bold mb-1">Target Impian</h1>
+          <p className="text-muted-foreground text-base sm:text-sm">Kelola target impian terintegrasi</p>
         </div>
         
         <Dialog open={isAddDialogOpen} onOpenChange={(open) => {
@@ -242,10 +242,10 @@ export default function SavingsGoals() {
           <DialogContent className="sm:max-w-md">
             <DialogHeader>
               <DialogTitle>
-                {editingGoal ? 'Edit Target Tabungan' : 'Tambah Target Tabungan'}
+                {editingGoal ? 'Edit Target Impian' : 'Tambah Target Impian'}
               </DialogTitle>
               <DialogDescription>
-                {editingGoal ? 'Perbarui detail target tabungan Anda' : 'Buat target tabungan baru yang terintegrasi dengan transaksi'}
+                {editingGoal ? 'Perbarui detail target impian Anda' : 'Buat target impian baru yang terintegrasi dengan transaksi'}
               </DialogDescription>
             </DialogHeader>
             
@@ -298,9 +298,9 @@ export default function SavingsGoals() {
       {goals.length === 0 ? (
         <Card className="p-8 text-center">
           <Target className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-          <h3 className="font-semibold mb-2">Belum Ada Target Tabungan</h3>
+          <h3 className="font-semibold mb-2">Belum Ada Target Impian</h3>
           <p className="text-sm text-muted-foreground mb-4">
-            Mulai dengan membuat target tabungan pertama yang terintegrasi dengan transaksi Anda
+            Mulai dengan membuat target impian pertama yang terintegrasi dengan transaksi Anda
           </p>
           <Button
             onClick={() => setIsAddDialogOpen(true)}
@@ -408,9 +408,9 @@ export default function SavingsGoals() {
       <Dialog open={isDepositDialogOpen} onOpenChange={setIsDepositDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Setor ke Tabungan</DialogTitle>
+            <DialogTitle>Setor ke Impian</DialogTitle>
             <DialogDescription>
-              Catat setoran untuk target tabungan Anda
+              Catat setoran untuk target impian Anda
             </DialogDescription>
           </DialogHeader>
           
@@ -461,9 +461,9 @@ export default function SavingsGoals() {
       <Dialog open={isWithdrawalDialogOpen} onOpenChange={setIsWithdrawalDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Tarik dari Tabungan</DialogTitle>
+            <DialogTitle>Tarik dari Impian</DialogTitle>
             <DialogDescription>
-              Catat penarikan dari target tabungan Anda
+              Catat penarikan dari target impian Anda
             </DialogDescription>
           </DialogHeader>
           

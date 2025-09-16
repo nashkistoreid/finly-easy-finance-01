@@ -76,6 +76,9 @@ export default function Dashboard() {
         <p className="text-muted-foreground text-base sm:text-sm">Kelola keuangan pribadi Anda</p>
       </div>
 
+      {/* Savings Progress - Highlighted at the top */}
+      <SavingsProgress />
+
       {/* Balance Section */}
       <BalanceCard 
         balance={balanceData.balance}
@@ -132,14 +135,14 @@ export default function Dashboard() {
         <div className="grid grid-cols-2 gap-3 mb-4">
           <div className="text-center p-4 bg-primary/5 rounded-lg">
             <PiggyBank className="h-6 w-6 mx-auto text-primary mb-2" />
-            <p className="text-sm sm:text-xs text-muted-foreground mb-2">Setoran Tabungan</p>
+            <p className="text-sm sm:text-xs text-muted-foreground mb-2">Setoran Impian</p>
             <p className="font-semibold text-primary text-base sm:text-sm">
               {formatCurrency(savingsData.savingsDeposits)}
             </p>
           </div>
           <div className="text-center p-4 bg-muted/50 rounded-lg">
             <Wallet className="h-6 w-6 mx-auto text-muted-foreground mb-2" />
-            <p className="text-sm sm:text-xs text-muted-foreground mb-2">Pengeluaran Non-Tabungan</p>
+            <p className="text-sm sm:text-xs text-muted-foreground mb-2">Pengeluaran Non-Impian</p>
             <p className="font-semibold text-expense text-base sm:text-sm">
               {formatCurrency(savingsData.nonSavingsExpenses)}
             </p>
@@ -178,9 +181,6 @@ export default function Dashboard() {
           </div>
         )}
       </Card>
-
-      {/* Savings Progress */}
-      <SavingsProgress />
 
       {/* Expense Chart */}
       <ExpenseChart />
