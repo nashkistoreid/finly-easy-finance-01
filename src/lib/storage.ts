@@ -139,6 +139,21 @@ export const getCategoryIncome = () => {
   }).filter(item => item.value > 0);
 };
 
+// Active banks management
+export const getActiveBanks = (): string[] => {
+  const stored = localStorage.getItem('activeBanks');
+  if (!stored) {
+    // Default: only show common banks
+    return ['cash', 'bca', 'bni', 'bri', 'mandiri'];
+  }
+  return JSON.parse(stored);
+};
+
+export const setActiveBanks = (bankIds: string[]) => {
+  localStorage.setItem('activeBanks', JSON.stringify(bankIds));
+  window.dispatchEvent(new CustomEvent('finly-update'));
+};
+
 export const getBalanceByBank = () => {
   const transactions = getTransactions();
   const bankBalances: { [key: string]: { income: number; expense: number; balance: number } } = {};
@@ -267,20 +282,6 @@ export const updateSavingsGoal = (id: string, updates: Partial<SavingsGoal>): vo
   }
 };
 
-// Active banks management
-export const getActiveBanks = (): string[] => {
-  const stored = localStorage.getItem('activeBanks');
-  if (!stored) {
-    // Default: only show common banks
-    return ['cash', 'bca', 'bni', 'bri', 'mandiri'];
-  }
-  return JSON.parse(stored);
-};
-
-export const setActiveBanks = (bankIds: string[]) => {
-  localStorage.setItem('activeBanks', JSON.stringify(bankIds));
-  window.dispatchEvent(new CustomEvent('finly-update'));
-};
 
 export const deactivateSavingsGoal = (id: string): void => {
   const goals = getSavingsGoals();
