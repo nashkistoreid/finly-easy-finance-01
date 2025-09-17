@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
 import { BalanceCard } from '@/components/BalanceCard';
 import { ExpenseChart } from '@/components/ExpenseChart';
+import { IncomeChart } from '@/components/IncomeChart';
 import { SavingsProgress } from '@/components/SavingsProgress';
-import { getBalance, getMonthlyData, getSavingsMonthlyData, getTotalSavingsAmount, formatCurrency } from '@/lib/storage';
+import { getBalance, getMonthlyData, getSavingsMonthlyData, getTotalSavingsAmount, formatCurrency, getBalanceByBank } from '@/lib/storage';
 import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Calendar, PiggyBank, Wallet, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, PiggyBank, Wallet, ChevronLeft, ChevronRight, Building2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { getBankById } from '@/lib/banks';
 
 export default function Dashboard() {
   const [balanceData, setBalanceData] = useState({ balance: 0, totalIncome: 0, totalExpense: 0 });
@@ -14,6 +16,7 @@ export default function Dashboard() {
   const [savingsData, setSavingsData] = useState({ savingsDeposits: 0, nonSavingsExpenses: 0, totalExpenses: 0 });
   const [totalSavingsAmount, setTotalSavingsAmount] = useState(0);
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [bankBalances, setBankBalances] = useState<{ [key: string]: { income: number; expense: number; balance: number } }>({});
 
   useEffect(() => {
     const updateData = () => {
@@ -21,6 +24,7 @@ export default function Dashboard() {
       setMonthlyData(getMonthlyData(selectedDate.getFullYear(), selectedDate.getMonth()));
       setSavingsData(getSavingsMonthlyData(selectedDate.getFullYear(), selectedDate.getMonth()));
       setTotalSavingsAmount(getTotalSavingsAmount());
+      setBankBalances(getBalanceByBank());
     };
 
     updateData();
@@ -85,6 +89,33 @@ export default function Dashboard() {
         totalIncome={balanceData.totalIncome}
         totalExpense={balanceData.totalExpense}
       />
+
+      {/* Bank Balances */}
+      {Object.keys(bankBalances).length > 0 && (
+        <Card className="p-4">
+          <div className="flex items-center space-x-2 mb-4">
+            <Building2 className="h-5 w-5 text-primary" />
+            <h3 className="font-semibold text-lg sm:text-base">Saldo per Bank</h3>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            {Object.entries(bankBalances).map(([bankId, balance]) => {
+              const bank = getBankById(bankId);
+              return (
+                <div key={bankId} className="p-3 border rounded-lg">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <span className="text-lg">{bank?.icon || '💰'}</span>
+                    <span className="text-sm font-medium">{bank?.shortName || bankId.toUpperCase()}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-1">Saldo</p>
+                  <p className={`font-semibold text-sm ${balance.balance >= 0 ? 'text-income' : 'text-expense'}`}>
+                    {formatCurrency(balance.balance, true)}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      )}
 
       {/* Monthly Summary */}
       <Card className="p-4">
@@ -184,6 +215,9 @@ export default function Dashboard() {
 
       {/* Expense Chart */}
       <ExpenseChart />
+
+      {/* Income Chart */}
+      <IncomeChart />
     </div>
   );
 }

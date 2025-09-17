@@ -6,6 +6,7 @@ export interface Transaction {
   category: string;
   amount: number;
   notes?: string;
+  bank_id?: string;
 }
 
 export interface Category {
@@ -119,6 +120,44 @@ export const getCategoryExpenses = () => {
       value: amount,
     };
   }).filter(item => item.value > 0);
+};
+
+export const getCategoryIncome = () => {
+  const transactions = getTransactions();
+  const categories = getCategories();
+  const incomeCategories = categories.filter(c => c.type === 'income');
+  
+  return incomeCategories.map(category => {
+    const amount = transactions
+      .filter(t => t.type === 'income' && t.category === category.name)
+      .reduce((sum, t) => sum + t.amount, 0);
+    
+    return {
+      name: category.name,
+      value: amount,
+    };
+  }).filter(item => item.value > 0);
+};
+
+export const getBalanceByBank = () => {
+  const transactions = getTransactions();
+  const bankBalances: { [key: string]: { income: number; expense: number; balance: number } } = {};
+  
+  transactions.forEach(t => {
+    const bankId = t.bank_id || 'cash';
+    if (!bankBalances[bankId]) {
+      bankBalances[bankId] = { income: 0, expense: 0, balance: 0 };
+    }
+    
+    if (t.type === 'income') {
+      bankBalances[bankId].income += t.amount;
+    } else {
+      bankBalances[bankId].expense += t.amount;
+    }
+    bankBalances[bankId].balance = bankBalances[bankId].income - bankBalances[bankId].expense;
+  });
+  
+  return bankBalances;
 };
 
 export interface SavingsGoal {

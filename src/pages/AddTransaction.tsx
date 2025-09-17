@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { saveTransaction, getActiveCategories, formatInputCurrency, parseCurrencyInput } from '@/lib/storage';
 import { useToast } from '@/hooks/use-toast';
+import { banks } from '@/lib/banks';
 
 export default function AddTransaction() {
   const navigate = useNavigate();
@@ -20,6 +21,7 @@ export default function AddTransaction() {
     category: '',
     amount: '',
     notes: '',
+    bank_id: 'cash',
   });
 
   const categories = getActiveCategories();
@@ -68,6 +70,7 @@ export default function AddTransaction() {
         category: formData.category,
         amount: amount,
         notes: formData.notes || undefined,
+        bank_id: formData.bank_id,
       });
 
       // Dispatch custom event for real-time updates
@@ -167,6 +170,31 @@ export default function AddTransaction() {
                   {filteredCategories.map(category => (
                     <SelectItem key={category.id} value={category.name}>
                       {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Bank Account */}
+          {formData.type && (
+            <div className="space-y-2">
+              <Label>Akun Bank *</Label>
+              <Select 
+                value={formData.bank_id} 
+                onValueChange={(value) => setFormData(prev => ({ ...prev, bank_id: value }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih bank" />
+                </SelectTrigger>
+                <SelectContent>
+                  {banks.map(bank => (
+                    <SelectItem key={bank.id} value={bank.id}>
+                      <div className="flex items-center space-x-2">
+                        <span>{bank.icon}</span>
+                        <span>{bank.name}</span>
+                      </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
