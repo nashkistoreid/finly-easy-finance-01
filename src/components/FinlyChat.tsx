@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { MessageCircle, X, Send, Bot, User } from "lucide-react";
+import { MessageCircle, X, Send, Bot, User, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -111,50 +111,58 @@ export const FinlyChat = () => {
   };
 
   return (
-    <div className="fixed right-4 chat-offset z-40">
+    <div className="fixed right-2 sm:right-4 chat-offset z-40">
       {/* Chat Window */}
       {isOpen && (
-        <Card className="mb-4 w-80 h-96 bg-card border-border shadow-lg animate-scale-in">
+        <Card className="mb-4 w-[calc(100vw-1rem)] sm:w-80 max-w-[22rem] h-[28rem] sm:h-96 bg-card border-border shadow-lg animate-scale-in">
           <div className="flex flex-col h-full">
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-border bg-gradient-to-r from-primary to-accent rounded-t-lg">
+            <div className="flex items-center justify-between p-3 sm:p-4 border-b border-border bg-gradient-to-r from-primary to-accent rounded-t-lg">
               <div className="flex items-center gap-2">
-                <Bot className="h-5 w-5 text-primary-foreground" />
-                <span className="font-semibold text-primary-foreground">FinlyChat</span>
+                <div className="relative">
+                  <Bot className="h-5 w-5 text-primary-foreground" />
+                  <Sparkles className="h-3 w-3 text-yellow-300 absolute -top-1 -right-1 animate-pulse" />
+                </div>
+                <span className="font-semibold text-primary-foreground text-sm sm:text-base">FinlyChat AI</span>
               </div>
               <Button 
                 variant="ghost" 
                 size="sm"
                 onClick={() => setIsOpen(false)}
-                className="text-primary-foreground hover:bg-white/20"
+                className="text-primary-foreground hover:bg-white/20 h-8 w-8 p-0"
               >
                 <X className="h-4 w-4" />
               </Button>
             </div>
 
             {/* Messages */}
-            <ScrollArea className="flex-1 p-4">
-              <div className="space-y-4">
+            <ScrollArea className="flex-1 p-3 sm:p-4">
+              <div className="space-y-3 sm:space-y-4">
                 {messages.map((message) => (
                   <div
                     key={message.id}
                     className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
                   >
                     <div
-                      className={`max-w-[70%] rounded-lg p-3 ${
+                      className={`max-w-[75%] sm:max-w-[70%] rounded-lg p-2.5 sm:p-3 ${
                         message.role === "user"
                           ? "bg-primary text-primary-foreground"
                           : "bg-muted text-foreground"
                       }`}
                     >
-                      <div className="flex items-start gap-2">
+                      <div className="flex items-start gap-1.5 sm:gap-2">
                         {message.role === "assistant" && (
-                          <Bot className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                          <div className="relative flex-shrink-0">
+                            <Bot className="h-3.5 w-3.5 sm:h-4 sm:w-4 mt-0.5" />
+                            <div className="absolute -top-0.5 -right-0.5">
+                              <div className="h-1.5 w-1.5 bg-green-500 rounded-full animate-pulse" />
+                            </div>
+                          </div>
                         )}
                         {message.role === "user" && (
-                          <User className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                          <User className="h-3.5 w-3.5 sm:h-4 sm:w-4 mt-0.5 flex-shrink-0" />
                         )}
-                        <p className="text-sm leading-relaxed">{message.content}</p>
+                        <p className="text-xs sm:text-sm leading-relaxed">{message.content}</p>
                       </div>
                     </div>
                   </div>
@@ -178,23 +186,23 @@ export const FinlyChat = () => {
             </ScrollArea>
 
             {/* Input */}
-            <div className="p-4 border-t border-border">
-              <div className="flex gap-2">
+            <div className="p-3 sm:p-4 border-t border-border">
+              <div className="flex gap-1.5 sm:gap-2">
                 <Input
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  placeholder="Tanya tentang keuangan..."
+                  placeholder="Tanya keuangan..."
                   disabled={isLoading}
-                  className="flex-1"
+                  className="flex-1 text-xs sm:text-sm h-8 sm:h-9"
                 />
                 <Button 
                   onClick={sendMessage}
                   disabled={!input.trim() || isLoading}
                   size="sm"
-                  className="px-3"
+                  className="px-2 sm:px-3 h-8 sm:h-9"
                 >
-                  <Send className="h-4 w-4" />
+                  <Send className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </Button>
               </div>
             </div>
@@ -202,17 +210,25 @@ export const FinlyChat = () => {
         </Card>
       )}
 
-      {/* Chat Bubble */}
-      <Button
-        onClick={() => setIsOpen(!isOpen)}
-        className="h-14 w-14 rounded-full bg-gradient-to-r from-primary to-accent hover:from-primary-hover hover:to-accent shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
-      >
-        {isOpen ? (
-          <X className="h-6 w-6 text-primary-foreground" />
-        ) : (
-          <MessageCircle className="h-6 w-6 text-primary-foreground" />
+      {/* Chat Bubble with Virtual Assistant Icon */}
+      <div className="relative">
+        <Button
+          onClick={() => setIsOpen(!isOpen)}
+          className="h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-gradient-to-r from-primary to-accent hover:from-primary-hover hover:to-accent shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 relative"
+        >
+          {isOpen ? (
+            <X className="h-5 w-5 sm:h-6 sm:w-6 text-primary-foreground" />
+          ) : (
+            <div className="relative">
+              <MessageCircle className="h-5 w-5 sm:h-6 sm:w-6 text-primary-foreground" />
+              <Sparkles className="h-3 w-3 sm:h-4 sm:w-4 text-yellow-300 absolute -top-1 -right-1 animate-pulse" />
+            </div>
+          )}
+        </Button>
+        {!isOpen && (
+          <div className="absolute -top-1 -right-1 h-3 w-3 sm:h-3.5 sm:w-3.5 bg-green-500 border-2 border-background rounded-full animate-pulse" />
         )}
-      </Button>
+      </div>
     </div>
   );
 };

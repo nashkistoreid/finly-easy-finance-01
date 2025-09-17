@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, Save, Settings2 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { saveTransaction, getActiveCategories, formatInputCurrency, parseCurrencyInput } from '@/lib/storage';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Checkbox } from '@/components/ui/checkbox';
+import { saveTransaction, getActiveCategories, formatInputCurrency, parseCurrencyInput, getActiveBanks, setActiveBanks } from '@/lib/storage';
 import { useToast } from '@/hooks/use-toast';
 import { banks } from '@/lib/banks';
 
@@ -23,11 +25,14 @@ export default function AddTransaction() {
     notes: '',
     bank_id: 'cash',
   });
+  const [activeBanks, setActiveBanksState] = useState<string[]>(getActiveBanks());
 
   const categories = getActiveCategories();
   const filteredCategories = categories.filter(c => 
     formData.type ? c.type === formData.type : true
   );
+
+  const availableBanks = banks.filter(bank => activeBanks.includes(bank.id));
 
   // Handle pre-filled data from navigation state
   useEffect(() => {
@@ -91,22 +96,86 @@ export default function AddTransaction() {
     }
   };
 
+  const handleBankToggle = (bankId: string) => {
+    const newActiveBanks = activeBanks.includes(bankId)
+      ? activeBanks.filter(id => id !== bankId)
+      : [...activeBanks, bankId];
+    
+    // Always keep at least one bank active
+    if (newActiveBanks.length === 0) {
+      toast({
+        title: "Peringatan",
+        description: "Minimal harus ada satu bank yang aktif",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    setActiveBanksState(newActiveBanks);
+    setActiveBanks(newActiveBanks);
+    
+    // Reset bank_id if current selection is removed
+    if (!newActiveBanks.includes(formData.bank_id)) {
+      setFormData(prev => ({ ...prev, bank_id: newActiveBanks[0] }));
+    }
+  };
+
   return (
     <div className="pb-24 px-3 sm:px-4 pt-6 w-full max-w-sm sm:max-w-md mx-auto">
       {/* Header */}
-      <div className="flex items-center mb-6">
-        <Button 
-          variant="ghost" 
-          size="icon"
-          onClick={() => navigate('/')}
-          className="mr-3 h-10 w-10 sm:h-8 sm:w-8"
-        >
-          <ArrowLeft className="h-6 w-6 sm:h-5 sm:w-5" />
-        </Button>
-        <div>
-          <h1 className="text-2xl sm:text-xl font-bold">Tambah Transaksi</h1>
-          <p className="text-base sm:text-sm text-muted-foreground">Catat pemasukan atau pengeluaran</p>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center">
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={() => navigate('/')}
+            className="mr-3 h-10 w-10 sm:h-8 sm:w-8"
+          >
+            <ArrowLeft className="h-6 w-6 sm:h-5 sm:w-5" />
+          </Button>
+          <div>
+            <h1 className="text-2xl sm:text-xl font-bold">Tambah Transaksi</h1>
+            <p className="text-base sm:text-sm text-muted-foreground">Catat pemasukan atau pengeluaran</p>
+          </div>
         </div>
+        
+        {/* Bank Settings Popover */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-2">
+              <Settings2 className="h-4 w-4" />
+              <span className="hidden sm:inline">Akun Bank</span>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-80" align="end">
+            <div className="space-y-4">
+              <div>
+                <h4 className="font-medium mb-3">Akun Bank Kamu</h4>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Pilih bank yang kamu gunakan
+                </p>
+              </div>
+              <div className="space-y-2 max-h-96 overflow-y-auto">
+                {banks.map(bank => (
+                  <div key={bank.id} className="flex items-center space-x-3 py-2">
+                    <Checkbox
+                      id={bank.id}
+                      checked={activeBanks.includes(bank.id)}
+                      onCheckedChange={() => handleBankToggle(bank.id)}
+                    />
+                    <label
+                      htmlFor={bank.id}
+                      className="flex items-center space-x-2 text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-1"
+                    >
+                      <span className="text-lg">{bank.icon}</span>
+                      <span>{bank.name}</span>
+                    </label>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </PopoverContent>
+        </Popover>
       </div>
 
       {/* Form */}
@@ -189,7 +258,7 @@ export default function AddTransaction() {
                   <SelectValue placeholder="Pilih bank" />
                 </SelectTrigger>
                 <SelectContent>
-                  {banks.map(bank => (
+                  {availableBanks.map(bank => (
                     <SelectItem key={bank.id} value={bank.id}>
                       <div className="flex items-center space-x-2">
                         <span>{bank.icon}</span>
