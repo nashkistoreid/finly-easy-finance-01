@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
-import { saveTransaction, getActiveCategories, formatInputCurrency, parseCurrencyInput, getActiveBanks, setActiveBanks } from '@/lib/storage';
+import { saveTransaction, getActiveCategories, formatInputCurrency, parseCurrencyInput, getActiveBanks, setActiveBanks, saveDebt, getDebts, updateDebtPayment } from '@/lib/storage';
 import { useToast } from '@/hooks/use-toast';
 import { banks } from '@/lib/banks';
 
@@ -19,11 +19,16 @@ export default function AddTransaction() {
   const { toast } = useToast();
   const [formData, setFormData] = useState({
     date: new Date().toISOString().split('T')[0],
-    type: '' as 'income' | 'expense' | '',
+    type: '' as 'income' | 'expense' | 'debt_loan' | '',
     category: '',
     amount: '',
     notes: '',
     bank_id: 'cash',
+    // Debt/Loan specific fields
+    party_name: '',
+    debt_type: '' as 'debt' | 'loan' | '',
+    loan_date: new Date().toISOString().split('T')[0],
+    due_date: '',
   });
   const [activeBanks, setActiveBanksState] = useState<string[]>(getActiveBanks());
 
@@ -49,6 +54,74 @@ export default function AddTransaction() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Handle debt/loan submission
+    if (formData.type === 'debt_loan') {
+      if (!formData.party_name || !formData.debt_type || !formData.amount || !formData.due_date) {
+        toast({
+          title: "Error",
+          description: "Mohon lengkapi semua field yang wajib diisi",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const amount = parseCurrencyInput(formData.amount);
+      if (amount <= 0) {
+        toast({
+          title: "Error",
+          description: "Mohon masukkan nominal yang valid",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      try {
+        // Save debt/loan record
+        saveDebt({
+          party_name: formData.party_name,
+          type: formData.debt_type,
+          amount: amount,
+          loan_date: formData.loan_date,
+          due_date: formData.due_date,
+          is_active: true,
+          notes: formData.notes || undefined,
+          bank_id: formData.bank_id,
+        });
+
+        // Also save as transaction for history
+        saveTransaction({
+          date: formData.loan_date,
+          type: formData.debt_type === 'debt' ? 'debt' : 'loan',
+          category: 'Hutang / Piutang',
+          amount: amount,
+          notes: `${formData.debt_type === 'debt' ? 'Hutang dari' : 'Piutang ke'} ${formData.party_name}${formData.notes ? ': ' + formData.notes : ''}`,
+          bank_id: formData.bank_id,
+          party_name: formData.party_name,
+          debt_type: formData.debt_type,
+          loan_date: formData.loan_date,
+          due_date: formData.due_date,
+        });
+
+        // Dispatch custom event for real-time updates
+        window.dispatchEvent(new CustomEvent('finly-update'));
+
+        toast({
+          title: "Berhasil!",
+          description: `${formData.debt_type === 'debt' ? 'Hutang' : 'Piutang'} berhasil dicatat`,
+        });
+
+        navigate('/');
+      } catch (error) {
+        toast({
+          title: "Error", 
+          description: "Gagal menyimpan data",
+          variant: "destructive"
+        });
+      }
+      return;
+    }
+    
+    // Handle regular transaction or debt payment
     if (!formData.type || !formData.category || !formData.amount) {
       toast({
         title: "Error",
@@ -69,14 +142,36 @@ export default function AddTransaction() {
     }
 
     try {
-      saveTransaction({
-        date: formData.date,
-        type: formData.type,
-        category: formData.category,
-        amount: amount,
-        notes: formData.notes || undefined,
-        bank_id: formData.bank_id,
-      });
+      // Check if this is a debt payment
+      if (formData.category === 'Bayar Hutang') {
+        // Get active debts to update
+        const debts = getDebts().filter(d => d.type === 'debt' && d.is_active);
+        if (debts.length > 0) {
+          // For simplicity, apply payment to the first active debt
+          // In a real app, you'd let user choose which debt to pay
+          updateDebtPayment(debts[0].id, amount);
+        }
+        
+        // Save as debt_payment transaction
+        saveTransaction({
+          date: formData.date,
+          type: 'debt_payment',
+          category: formData.category,
+          amount: amount,
+          notes: formData.notes || undefined,
+          bank_id: formData.bank_id,
+        });
+      } else {
+        // Regular transaction
+        saveTransaction({
+          date: formData.date,
+          type: formData.type as 'income' | 'expense',
+          category: formData.category,
+          amount: amount,
+          notes: formData.notes || undefined,
+          bank_id: formData.bank_id,
+        });
+      }
 
       // Dispatch custom event for real-time updates
       window.dispatchEvent(new CustomEvent('finly-update'));
@@ -204,7 +299,10 @@ export default function AddTransaction() {
                 onClick={() => setFormData(prev => ({ 
                   ...prev, 
                   type: 'income', 
-                  category: '' 
+                  category: '',
+                  party_name: '',
+                  debt_type: '',
+                  due_date: '',
                 }))}
               >
                 💰 Pemasukan
@@ -216,16 +314,100 @@ export default function AddTransaction() {
                 onClick={() => setFormData(prev => ({ 
                   ...prev, 
                   type: 'expense', 
-                  category: '' 
+                  category: '',
+                  party_name: '',
+                  debt_type: '',
+                  due_date: '',
                 }))}
               >
                 💸 Pengeluaran
               </Button>
             </div>
+            <Button
+              type="button"
+              variant={formData.type === 'debt_loan' ? 'default' : 'outline'}
+              className={`w-full ${formData.type === 'debt_loan' ? 'bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600' : ''}`}
+              onClick={() => setFormData(prev => ({ 
+                ...prev, 
+                type: 'debt_loan', 
+                category: 'Hutang / Piutang',
+                party_name: '',
+                debt_type: '',
+                due_date: '',
+              }))}
+            >
+              🤝 Hutang / Piutang
+            </Button>
           </div>
 
+          {/* Debt/Loan specific fields */}
+          {formData.type === 'debt_loan' && (
+            <>
+              {/* Party Name */}
+              <div className="space-y-2">
+                <Label htmlFor="party_name">Nama Pihak *</Label>
+                <Input
+                  id="party_name"
+                  type="text"
+                  placeholder="Nama orang/bisnis/bank"
+                  value={formData.party_name}
+                  onChange={(e) => setFormData(prev => ({ ...prev, party_name: e.target.value }))}
+                  required
+                />
+              </div>
+
+              {/* Debt Type */}
+              <div className="space-y-2">
+                <Label>Jenis *</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    type="button"
+                    variant={formData.debt_type === 'debt' ? 'default' : 'outline'}
+                    className={formData.debt_type === 'debt' ? 'bg-red-500 hover:bg-red-600' : ''}
+                    onClick={() => setFormData(prev => ({ ...prev, debt_type: 'debt' }))}
+                  >
+                    📉 Hutang (Saya pinjam)
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={formData.debt_type === 'loan' ? 'default' : 'outline'}
+                    className={formData.debt_type === 'loan' ? 'bg-green-500 hover:bg-green-600' : ''}
+                    onClick={() => setFormData(prev => ({ ...prev, debt_type: 'loan' }))}
+                  >
+                    📈 Piutang (Saya pinjamkan)
+                  </Button>
+                </div>
+              </div>
+
+              {/* Loan Date */}
+              <div className="space-y-2">
+                <Label htmlFor="loan_date">Tanggal Pinjam *</Label>
+                <Input
+                  id="loan_date"
+                  type="date"
+                  value={formData.loan_date}
+                  onChange={(e) => setFormData(prev => ({ ...prev, loan_date: e.target.value }))}
+                  required
+                />
+              </div>
+
+              {/* Due Date */}
+              <div className="space-y-2">
+                <Label htmlFor="due_date">Tanggal Jatuh Tempo *</Label>
+                <Input
+                  id="due_date"
+                  type="date"
+                  value={formData.due_date}
+                  onChange={(e) => setFormData(prev => ({ ...prev, due_date: e.target.value }))}
+                  min={formData.loan_date}
+                  required
+                />
+              </div>
+            </>
+          )}
+
           {/* Category */}
-          {formData.type && (
+          {formData.type && formData.type !== 'debt_loan' && (
             <div className="space-y-2">
               <Label>Kategori *</Label>
               <Select 
@@ -241,6 +423,11 @@ export default function AddTransaction() {
                       {category.name}
                     </SelectItem>
                   ))}
+                  {formData.type === 'expense' && (
+                    <SelectItem value="Bayar Hutang">
+                      💳 Bayar Hutang
+                    </SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>

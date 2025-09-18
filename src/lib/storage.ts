@@ -2,11 +2,17 @@
 export interface Transaction {
   id: string;
   date: string;
-  type: 'income' | 'expense';
+  type: 'income' | 'expense' | 'debt' | 'loan' | 'debt_payment';
   category: string;
   amount: number;
   notes?: string;
   bank_id?: string;
+  // Debt/Loan specific fields
+  party_name?: string;
+  debt_type?: 'debt' | 'loan';
+  loan_date?: string;
+  due_date?: string;
+  debt_id?: string; // For linking payments to debts
 }
 
 export interface Category {
@@ -493,4 +499,186 @@ export const parseCurrencyInput = (value: string): number => {
   // Remove all non-digit characters
   const numericValue = value.replace(/\D/g, '');
   return parseInt(numericValue, 10) || 0;
+};
+
+// Debt/Loan Management
+export interface Debt {
+  id: string;
+  party_name: string;
+  type: 'debt' | 'loan';
+  amount: number;
+  loan_date: string;
+  due_date: string;
+  is_active: boolean;
+  notes?: string;
+  bank_id?: string;
+  paid_amount: number;
+}
+
+const DEBTS_KEY = 'finly_debts';
+
+export const getDebts = (): Debt[] => {
+  const data = localStorage.getItem(DEBTS_KEY);
+  return data ? JSON.parse(data) : [];
+};
+
+export const saveDebt = (debt: Omit<Debt, 'id' | 'paid_amount'>): Debt => {
+  const debts = getDebts();
+  const newDebt: Debt = {
+    ...debt,
+    id: Date.now().toString(),
+    paid_amount: 0,
+  };
+  
+  debts.push(newDebt);
+  localStorage.setItem(DEBTS_KEY, JSON.stringify(debts));
+  
+  // Trigger custom event for updates
+  window.dispatchEvent(new CustomEvent('finly-update'));
+  
+  // Auto-create or update "Bebas Hutang" goal if it's a debt
+  if (debt.type === 'debt') {
+    createOrUpdateDebtFreeGoal();
+  }
+  
+  return newDebt;
+};
+
+export const updateDebtPayment = (debtId: string, paymentAmount: number): void => {
+  const debts = getDebts();
+  const debtIndex = debts.findIndex(d => d.id === debtId);
+  
+  if (debtIndex !== -1) {
+    debts[debtIndex].paid_amount += paymentAmount;
+    
+    // Mark as inactive if fully paid
+    if (debts[debtIndex].paid_amount >= debts[debtIndex].amount) {
+      debts[debtIndex].is_active = false;
+    }
+    
+    localStorage.setItem(DEBTS_KEY, JSON.stringify(debts));
+    
+    // Update "Bebas Hutang" goal progress
+    updateDebtFreeGoalProgress();
+    
+    // Trigger custom event for updates
+    window.dispatchEvent(new CustomEvent('finly-update'));
+  }
+};
+
+export const getTotalActiveDebt = (): number => {
+  const debts = getDebts();
+  return debts
+    .filter(d => d.type === 'debt' && d.is_active)
+    .reduce((total, debt) => total + (debt.amount - debt.paid_amount), 0);
+};
+
+export const getTotalDebtPayments = (): number => {
+  const debts = getDebts();
+  return debts
+    .filter(d => d.type === 'debt')
+    .reduce((total, debt) => total + debt.paid_amount, 0);
+};
+
+export const getUpcomingDueDates = (): Debt[] => {
+  const debts = getDebts();
+  const today = new Date();
+  const threeDaysFromNow = new Date();
+  threeDaysFromNow.setDate(today.getDate() + 3);
+  
+  return debts
+    .filter(d => {
+      if (!d.is_active) return false;
+      const dueDate = new Date(d.due_date);
+      return dueDate <= threeDaysFromNow && dueDate >= today;
+    })
+    .sort((a, b) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime());
+};
+
+export const getOverdueDebts = (): Debt[] => {
+  const debts = getDebts();
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  return debts
+    .filter(d => {
+      if (!d.is_active) return false;
+      const dueDate = new Date(d.due_date);
+      dueDate.setHours(0, 0, 0, 0);
+      return dueDate < today;
+    });
+};
+
+// Special "Bebas Hutang" goal management
+export const createOrUpdateDebtFreeGoal = (): void => {
+  const goals = getSavingsGoals();
+  const totalDebt = getTotalActiveDebt();
+  
+  let debtFreeGoal = goals.find(g => g.name === 'Bebas Hutang');
+  
+  if (!debtFreeGoal && totalDebt > 0) {
+    // Create new "Bebas Hutang" goal
+    saveSavingsGoal({
+      name: 'Bebas Hutang',
+      target_amount: totalDebt,
+      is_active: true,
+      created_at: new Date().toISOString().split('T')[0],
+    });
+  } else if (debtFreeGoal && totalDebt > 0) {
+    // Update existing goal target
+    updateSavingsGoal(debtFreeGoal.id, {
+      target_amount: totalDebt,
+    });
+  }
+};
+
+export const updateDebtFreeGoalProgress = (): void => {
+  const goals = getSavingsGoals();
+  const debtFreeGoal = goals.find(g => g.name === 'Bebas Hutang');
+  
+  if (!debtFreeGoal) return;
+  
+  const totalDebt = getTotalActiveDebt();
+  
+  // If all debts are paid, mark goal as achieved
+  if (totalDebt === 0) {
+    updateSavingsGoal(debtFreeGoal.id, {
+      is_active: false,
+    });
+  }
+};
+
+export const getDebtFreeProgress = (): { 
+  total_debt: number;
+  paid_amount: number;
+  remaining_debt: number;
+  progress_percent: number;
+  nearest_due_date?: { date: string; party_name: string };
+  is_achieved: boolean;
+} => {
+  const debts = getDebts().filter(d => d.type === 'debt');
+  const totalDebt = debts.reduce((sum, d) => sum + d.amount, 0);
+  const paidAmount = debts.reduce((sum, d) => sum + d.paid_amount, 0);
+  const remainingDebt = Math.max(0, totalDebt - paidAmount);
+  const progressPercent = totalDebt > 0 ? Math.min(100, Math.round((paidAmount / totalDebt) * 100)) : 0;
+  
+  // Find nearest due date for active debts
+  const activeDebts = debts.filter(d => d.is_active);
+  const sortedByDue = activeDebts.sort((a, b) => 
+    new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
+  );
+  
+  const nearestDue = sortedByDue[0] ? {
+    date: sortedByDue[0].due_date,
+    party_name: sortedByDue[0].party_name,
+  } : undefined;
+  
+  return {
+    total_debt: totalDebt,
+    paid_amount: paidAmount,
+    remaining_debt: remainingDebt,
+    progress_percent: progressPercent,
+    nearest_due_date: nearestDue,
+    is_achieved: remainingDebt === 0 && totalDebt > 0,
+  };
 };

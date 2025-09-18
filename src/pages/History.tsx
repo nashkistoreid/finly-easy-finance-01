@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { getTransactions, getCategories, deleteTransaction, formatCurrency, type Transaction } from '@/lib/storage';
+import { getTransactions, getCategories, deleteTransaction, formatCurrency, type Transaction, getDebts } from '@/lib/storage';
 import { useToast } from '@/hooks/use-toast';
 import jsPDF from 'jspdf';
 

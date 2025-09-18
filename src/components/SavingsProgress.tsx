@@ -1,14 +1,17 @@
 import { useState, useEffect } from 'react';
-import { Sparkles, Target } from 'lucide-react';
+import { Sparkles, Target, Shield, AlertCircle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
-import { getSavingsGoals, getSavingsGoalProgress, getTotalSavingsAmount, formatCurrency, type SavingsGoal } from '@/lib/storage';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { getSavingsGoals, getSavingsGoalProgress, getTotalSavingsAmount, formatCurrency, type SavingsGoal, getDebtFreeProgress, createOrUpdateDebtFreeGoal, getTotalActiveDebt, getUpcomingDueDates } from '@/lib/storage';
 import { useNavigate } from 'react-router-dom';
 
 export const SavingsProgress = () => {
   const [goals, setGoals] = useState<SavingsGoal[]>([]);
   const [totalSavingsAmount, setTotalSavingsAmount] = useState(0);
+  const [debtProgress, setDebtProgress] = useState<ReturnType<typeof getDebtFreeProgress> | null>(null);
+  const [upcomingDues, setUpcomingDues] = useState<ReturnType<typeof getUpcomingDueDates>>([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -16,6 +19,8 @@ export const SavingsProgress = () => {
       const activeGoals = getSavingsGoals().filter(g => g.is_active);
       setGoals(activeGoals);
       setTotalSavingsAmount(getTotalSavingsAmount());
+      setDebtProgress(getDebtFreeProgress());
+      setUpcomingDues(getUpcomingDueDates());
     };
 
     updateData();
@@ -61,6 +66,79 @@ export const SavingsProgress = () => {
           <p className="text-xs text-muted-foreground mt-2">
             💰 Dana terkumpul untuk mewujudkan impian Anda
           </p>
+        </div>
+      )}
+
+      {/* Debt Free Progress */}
+      {debtProgress && debtProgress.total_debt > 0 && (
+        <div className="mb-4">
+          {debtProgress.is_achieved ? (
+            <div className="p-4 bg-gradient-to-r from-green-500/20 to-emerald-500/20 rounded-lg border border-green-500/30">
+              <div className="flex items-center gap-2 mb-2">
+                <Shield className="h-5 w-5 text-green-500" />
+                <h4 className="font-semibold text-green-600">Selamat! Kamu sudah bebas hutang 🎉</h4>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                Total hutang {formatCurrency(debtProgress.total_debt)} telah lunas!
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Shield className="h-4 w-4 text-orange-500" />
+                  <h4 className="text-sm font-medium">Bebas Hutang</h4>
+                </div>
+                {!goals.some(g => g.name === 'Bebas Hutang') && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      createOrUpdateDebtFreeGoal();
+                      window.dispatchEvent(new CustomEvent('finly-update'));
+                    }}
+                    className="text-xs"
+                  >
+                    Buat Impian
+                  </Button>
+                )}
+              </div>
+              
+              <Progress 
+                value={debtProgress.progress_percent} 
+                className="h-2"
+              />
+              
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div>
+                  <p className="text-muted-foreground">Sudah dibayar</p>
+                  <p className="font-medium">{formatCurrency(debtProgress.paid_amount)}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-muted-foreground">Sisa hutang</p>
+                  <p className="font-medium text-orange-500">{formatCurrency(debtProgress.remaining_debt)}</p>
+                </div>
+              </div>
+
+              {debtProgress.nearest_due_date && (
+                <Alert className="border-orange-200 bg-orange-50">
+                  <AlertCircle className="h-4 w-4 text-orange-500" />
+                  <AlertDescription className="text-xs">
+                    Jatuh tempo terdekat: {new Date(debtProgress.nearest_due_date.date).toLocaleDateString('id-ID')} - {debtProgress.nearest_due_date.party_name}
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {upcomingDues.length > 0 && (
+                <Alert className="border-red-200 bg-red-50">
+                  <AlertCircle className="h-4 w-4 text-red-500" />
+                  <AlertDescription className="text-xs">
+                    ⚠️ Ada {upcomingDues.length} hutang yang akan jatuh tempo dalam 3 hari
+                  </AlertDescription>
+                </Alert>
+              )}
+            </div>
+          )}
         </div>
       )}
 
