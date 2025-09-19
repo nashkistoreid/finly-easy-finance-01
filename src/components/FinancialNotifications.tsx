@@ -17,10 +17,33 @@ export function FinancialNotifications() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isExpanded, setIsExpanded] = useState(false);
 
+  const getDefaultIcon = (type: string) => {
+    switch (type) {
+      case 'income':
+        return <TrendingUp className="h-4 w-4 text-income" />;
+      case 'expense_warning':
+        return <TrendingDown className="h-4 w-4 text-expense" />;
+      case 'low_balance':
+        return <AlertCircle className="h-4 w-4 text-expense" />;
+      case 'debt_payment':
+      case 'debt_due':
+        return <Calendar className="h-4 w-4 text-yellow-500" />;
+      case 'weekly_report':
+        return <DollarSign className="h-4 w-4 text-primary" />;
+      default:
+        return <Bell className="h-4 w-4 text-primary" />;
+    }
+  };
+
   useEffect(() => {
     const loadNotifications = () => {
       const notifs = getFinancialNotifications();
-      setNotifications(notifs);
+      // Map notifications and ensure all have icons
+      const mappedNotifs: Notification[] = notifs.map(n => ({
+        ...n,
+        icon: n.icon || getDefaultIcon(n.type)
+      }));
+      setNotifications(mappedNotifs);
     };
 
     loadNotifications();
