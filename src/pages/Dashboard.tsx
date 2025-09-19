@@ -3,6 +3,8 @@ import { BalanceCard } from '@/components/BalanceCard';
 import { ExpenseChart } from '@/components/ExpenseChart';
 import { IncomeChart } from '@/components/IncomeChart';
 import { SavingsProgress } from '@/components/SavingsProgress';
+import { FinancialHealthScore } from '@/components/FinancialHealthScore';
+import { FinancialNotifications } from '@/components/FinancialNotifications';
 import { getBalance, getMonthlyData, getSavingsMonthlyData, getTotalSavingsAmount, formatCurrency, getBalanceByBank } from '@/lib/storage';
 import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -79,6 +81,12 @@ export default function Dashboard() {
         <h1 className="text-3xl sm:text-2xl font-bold mb-2">Finly</h1>
         <p className="text-muted-foreground text-base sm:text-sm">Kelola keuangan pribadi Anda</p>
       </div>
+
+      {/* Financial Notifications */}
+      <FinancialNotifications />
+
+      {/* Financial Health Score */}
+      <FinancialHealthScore />
 
       {/* Savings Progress - Highlighted at the top */}
       <SavingsProgress />

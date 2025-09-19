@@ -1,4 +1,7 @@
 // Local storage utilities for Finly
+import React from 'react';
+import { CheckCircle, XCircle, AlertCircle, TrendingUp, Calendar, DollarSign, Bell } from 'lucide-react';
+
 export interface Transaction {
   id: string;
   date: string;
@@ -682,3 +685,224 @@ export const getDebtFreeProgress = (): {
     is_achieved: remainingDebt === 0 && totalDebt > 0,
   };
 };
+
+// Financial Health Score calculation
+export function calculateFinancialHealthScore() {
+  const transactions = getTransactions();
+  const savings = getSavingsGoals();
+  const debts = getDebts();
+  const balance = getBalance();
+  const currentMonth = new Date();
+  const monthlyData = getMonthlyData(currentMonth.getFullYear(), currentMonth.getMonth());
+  
+  const savingsRatio = monthlyData.income > 0 
+    ? (getSavingsMonthlyData(currentMonth.getFullYear(), currentMonth.getMonth()).savingsDeposits / monthlyData.income) * 100
+    : 0;
+  
+  const activeDebts = debts.filter(d => d.is_active);
+  const totalDebt = activeDebts.reduce((sum, d) => sum + d.amount, 0);
+  const debtToIncomeRatio = monthlyData.income > 0 ? (totalDebt / monthlyData.income) : 0;
+  
+  const expenseToIncomeRatio = monthlyData.income > 0 
+    ? (monthlyData.expense / monthlyData.income)
+    : monthlyData.expense > 0 ? 2 : 0;
+  
+  const totalGoalProgress = savings.reduce((sum, s) => {
+    const progress = getSavingsGoalProgress(s.id);
+    return sum + Math.min(progress.progress_percent, 100);
+  }, 0) / Math.max(savings.length, 1);
+  
+  let score = 0;
+  
+  if (savingsRatio >= 20) score += 30;
+  else if (savingsRatio >= 15) score += 25;
+  else if (savingsRatio >= 10) score += 20;
+  else if (savingsRatio >= 5) score += 10;
+  else if (savingsRatio > 0) score += 5;
+  
+  if (totalDebt === 0) score += 25;
+  else if (debtToIncomeRatio < 0.2) score += 20;
+  else if (debtToIncomeRatio < 0.4) score += 15;
+  else if (debtToIncomeRatio < 0.6) score += 10;
+  else if (debtToIncomeRatio < 0.8) score += 5;
+  
+  if (expenseToIncomeRatio <= 0.7) score += 25;
+  else if (expenseToIncomeRatio <= 0.8) score += 20;
+  else if (expenseToIncomeRatio <= 0.9) score += 15;
+  else if (expenseToIncomeRatio <= 1) score += 10;
+  else if (expenseToIncomeRatio <= 1.1) score += 5;
+  
+  score += Math.round((totalGoalProgress / 100) * 20);
+  
+  let label = '';
+  let color = '';
+  let icon = null;
+  const suggestions: string[] = [];
+  
+  if (score >= 80) {
+    label = 'Sangat Sehat ✅';
+    color = 'hsl(var(--income))';
+    icon = React.createElement(CheckCircle, { className: "h-5 w-5 text-income" });
+    suggestions.push('Keuanganmu sangat sehat! Pertahankan kebiasaan baikmu.');
+    if (savingsRatio < 20) {
+      suggestions.push('Tingkatkan rasio tabungan ke 20% untuk hasil optimal.');
+    }
+  } else if (score >= 60) {
+    label = 'Perlu Diperhatikan ⚠️';
+    color = 'hsl(var(--yellow-500))';
+    icon = React.createElement(AlertCircle, { className: "h-5 w-5 text-yellow-500" });
+    
+    if (expenseToIncomeRatio > 0.8) {
+      const overspend = ((expenseToIncomeRatio - 0.8) * 100).toFixed(0);
+      suggestions.push(`Pengeluaranmu ${overspend}% lebih tinggi dari yang disarankan.`);
+    }
+    if (savingsRatio < 10) {
+      suggestions.push('Usahakan sisihkan minimal 10% dari pemasukan untuk tabungan.');
+    }
+  } else {
+    label = 'Kritis 🔴';
+    color = 'hsl(var(--expense))';
+    icon = React.createElement(XCircle, { className: "h-5 w-5 text-expense" });
+    
+    if (expenseToIncomeRatio > 1) {
+      suggestions.push('Pengeluaranmu melebihi pemasukan! Segera kurangi pengeluaran.');
+    }
+    if (savingsRatio === 0) {
+      suggestions.push('Mulai sisihkan sedikit untuk tabungan, minimal 5% dari pemasukan.');
+    }
+  }
+  
+  return {
+    score,
+    label,
+    color,
+    icon,
+    suggestions,
+    details: {
+      savingsRatio,
+      debtStatus: totalDebt === 0 ? 'Bebas Hutang' : `${formatCurrency(totalDebt)}`,
+      expenseControl: expenseToIncomeRatio <= 0.8 ? 'Terkontrol' : expenseToIncomeRatio <= 1 ? 'Perlu Dikurangi' : 'Over Budget',
+      goalProgress: Math.round(totalGoalProgress)
+    }
+  };
+}
+
+// Financial Notifications
+interface FinancialNotification {
+  id: string;
+  type: 'income' | 'expense_warning' | 'low_balance' | 'debt_payment' | 'debt_due' | 'weekly_report';
+  message: string;
+  timestamp: Date;
+  priority: 'high' | 'medium' | 'low';
+  icon?: React.ReactNode;
+}
+
+export function getFinancialNotifications(): FinancialNotification[] {
+  generateFinancialNotifications();
+  const notifs = JSON.parse(localStorage.getItem('finly-notifications') || '[]');
+  return notifs.map((n: any) => ({
+    ...n,
+    timestamp: new Date(n.timestamp),
+    icon: getNotificationIcon(n.type)
+  }));
+}
+
+function generateFinancialNotifications(): void {
+  const notifications: FinancialNotification[] = [];
+  const transactions = getTransactions();
+  const balance = getBalance();
+  const currentDate = new Date();
+  const savings = getSavingsGoals();
+  const debts = getDebts();
+  
+  const weekStart = new Date(currentDate);
+  weekStart.setDate(weekStart.getDate() - 7);
+  
+  const weekTransactions = transactions.filter(t => 
+    new Date(t.date) >= weekStart && new Date(t.date) <= currentDate
+  );
+  
+  const recentIncome = weekTransactions.filter(t => 
+    t.type === 'income' && t.amount >= 1000000
+  );
+  
+  if (recentIncome.length > 0) {
+    notifications.push({
+      id: `income-${Date.now()}`,
+      type: 'income',
+      message: `Gaji kamu sudah masuk 🎉 Sisihkan 10% ke tabungan atau impian?`,
+      timestamp: new Date(),
+      priority: 'low'
+    });
+  }
+  
+  const weekExpenses = weekTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+  const weekIncome = weekTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+  
+  if (weekIncome > 0 && weekExpenses / weekIncome > 0.8) {
+    const percentage = Math.round((weekExpenses / weekIncome) * 100);
+    notifications.push({
+      id: `expense-warning-${Date.now()}`,
+      type: 'expense_warning',
+      message: `Pengeluaranmu minggu ini sudah ${percentage}% dari pemasukan.`,
+      timestamp: new Date(),
+      priority: 'medium'
+    });
+  }
+  
+  if (balance.balance < 100000 && balance.balance >= 0) {
+    notifications.push({
+      id: `low-balance-${Date.now()}`,
+      type: 'low_balance',
+      message: `Saldo kamu menipis! Hati-hati dalam pengeluaran.`,
+      timestamp: new Date(),
+      priority: 'high'
+    });
+  }
+  
+  const unpaidDebts = debts.filter(d => d.is_active);
+  unpaidDebts.forEach(debt => {
+    if (debt.due_date) {
+      const dueDate = new Date(debt.due_date);
+      const daysDiff = Math.ceil((dueDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (daysDiff <= 3 && daysDiff >= 0) {
+        notifications.push({
+          id: `debt-due-${debt.id}`,
+          type: 'debt_due',
+          message: `Ingat! Hutang ${formatCurrency(debt.amount)} ke ${debt.party_name} jatuh tempo ${dueDate.toLocaleDateString('id-ID')}.`,
+          timestamp: new Date(),
+          priority: 'high'
+        });
+      }
+    }
+  });
+  
+  const existingNotifs = JSON.parse(localStorage.getItem('finly-notifications') || '[]');
+  const newNotifs = [...notifications, ...existingNotifs].slice(0, 10);
+  localStorage.setItem('finly-notifications', JSON.stringify(newNotifs));
+}
+
+function getNotificationIcon(type: string): React.ReactNode {
+  switch (type) {
+    case 'income':
+      return React.createElement(TrendingUp, { className: "h-4 w-4 text-income" });
+    case 'expense_warning':
+      return React.createElement(AlertCircle, { className: "h-4 w-4 text-yellow-500" });
+    case 'low_balance':
+      return React.createElement(AlertCircle, { className: "h-4 w-4 text-expense" });
+    case 'debt_payment':
+      return React.createElement(DollarSign, { className: "h-4 w-4 text-income" });
+    case 'debt_due':
+      return React.createElement(Calendar, { className: "h-4 w-4 text-expense" });
+    default:
+      return React.createElement(Bell, { className: "h-4 w-4 text-primary" });
+  }
+}
+
+export function dismissNotification(notificationId: string): void {
+  const notifs = JSON.parse(localStorage.getItem('finly-notifications') || '[]');
+  const filtered = notifs.filter((n: any) => n.id !== notificationId);
+  localStorage.setItem('finly-notifications', JSON.stringify(filtered));
+  window.dispatchEvent(new CustomEvent('finly-update'));
+}
